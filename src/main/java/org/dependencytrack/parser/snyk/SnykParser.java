@@ -18,6 +18,7 @@ import org.dependencytrack.parser.snyk.model.SnykError;
 import org.dependencytrack.persistence.QueryManager;
 
 import java.math.BigDecimal;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,8 +47,14 @@ public class SnykParser {
             }
             vulnerability.setTitle(vulnAttributes.optString("title", null));
             vulnerability.setDescription(vulnAttributes.optString("description", null));
-            vulnerability.setCreated(Date.from(jsonStringToTimestamp(vulnAttributes.optString("created_at")).toInstant()));
-            vulnerability.setUpdated(Date.from(jsonStringToTimestamp(vulnAttributes.optString("updated_at")).toInstant()));
+            ZonedDateTime createdAt = jsonStringToTimestamp(vulnAttributes.optString("created_at"));
+            if (createdAt != null) {
+                vulnerability.setCreated(Date.from(createdAt.toInstant()));
+            }
+            ZonedDateTime updatedAt = jsonStringToTimestamp(vulnAttributes.optString("updated_at"));
+            if (updatedAt != null) {
+                vulnerability.setUpdated(Date.from(updatedAt.toInstant()));
+            }
             final JSONArray problems = vulnAttributes.optJSONArray("problems");
             if (problems != null) {
                 vulnerability.setAliases(computeAliases(vulnerability, qm, problems));
@@ -155,7 +162,7 @@ public class SnykParser {
                 }
             }
             vulnerability.setCvssV3Vector(cvss.optString("vector", null));
-            final String cvssScore = cvss.optString("score");
+            final String cvssScore = cvss.optString("score", null);
             if (cvssScore != null) {
                 vulnerability.setCvssV3BaseScore(BigDecimal.valueOf(Double.parseDouble(cvssScore)));
             }
