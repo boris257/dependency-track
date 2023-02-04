@@ -68,6 +68,7 @@ import java.util.Set;
                 @Persistent(name = "project"),
                 @Persistent(name = "resolvedLicense"),
                 @Persistent(name = "externalReferences"),
+                @Persistent(name = "componentProperties"),
                 @Persistent(name = "parent"),
                 @Persistent(name = "children"),
                 @Persistent(name = "vulnerabilities"),
@@ -304,6 +305,11 @@ public class Component implements Serializable {
     @Column(name = "EXTERNAL_REFERENCES")
     @Serialized
     private List<ExternalReference> externalReferences;
+
+    @Persistent(defaultFetchGroup = "true")
+    @Column(name = "COMPONENT_PROPERTIES")
+    @Serialized
+    private List<ComponentProperty> componentProperties;
 
     @Persistent
     @Column(name = "PARENT_COMPONENT_ID")
@@ -663,6 +669,21 @@ public class Component implements Serializable {
 
     public void setExternalReferences(List<ExternalReference> externalReferences) {
         this.externalReferences = externalReferences;
+    }
+
+    public List<ComponentProperty> getComponentProperties() {
+        return componentProperties;
+    }
+
+    public void addComponentProperties(ComponentProperty componentProperties) {
+        if (this.componentProperties == null) {
+            this.componentProperties = new ArrayList<>();
+        }
+        this.componentProperties.add(componentProperties);
+    }
+
+    public void setComponentProperties(List<ComponentProperty> componentProperties) {
+        this.componentProperties = componentProperties;
     }
 
     public Component getParent() {

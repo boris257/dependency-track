@@ -27,6 +27,7 @@ import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.Hash;
 import org.cyclonedx.model.LicenseChoice;
+import org.cyclonedx.model.Property;
 import org.cyclonedx.model.Swid;
 import org.dependencytrack.model.Analysis;
 import org.dependencytrack.model.AnalysisJustification;
@@ -35,6 +36,7 @@ import org.dependencytrack.model.AnalysisState;
 import org.dependencytrack.model.Classifier;
 import org.dependencytrack.model.Component;
 import org.dependencytrack.model.ComponentIdentity;
+import org.dependencytrack.model.ComponentProperty;
 import org.dependencytrack.model.Cwe;
 import org.dependencytrack.model.DataClassification;
 import org.dependencytrack.model.ExternalReference;
@@ -176,6 +178,28 @@ public class ModelConverter {
             component.setExternalReferences(null);
         }
 
+        if (cycloneDxComponent.getProperties() != null && cycloneDxComponent.getProperties().size() > 0) {
+            List<ComponentProperty> props = new ArrayList<>();
+            for (org.cyclonedx.model.Property cycloneDxProp: cycloneDxComponent.getProperties()) {
+                String cycloneDxPropName = cycloneDxProp.getName();
+                switch (cycloneDxPropName) {
+                    case "aquasecurity:trivy:LayerDigest":
+                        break;
+                    case "aquasecurity:trivy:LayerDiffID":
+                        break;
+                    default:
+                        ComponentProperty prop = new ComponentProperty();
+                        prop.setName(cycloneDxPropName);
+                        prop.setValue(cycloneDxProp.getValue());
+                        props.add(prop);
+                        break;
+                }
+            }
+            component.setComponentProperties(props);
+        } else {
+            component.setComponentProperties(null);
+        }
+
         if (cycloneDxComponent.getComponents() != null && !cycloneDxComponent.getComponents().isEmpty()) {
             final Collection<Component> components = new ArrayList<>();
             for (int i = 0; i < cycloneDxComponent.getComponents().size(); i++) {
@@ -273,6 +297,19 @@ public class ModelConverter {
             cycloneComponent.setExternalReferences(references);
         } else {
             cycloneComponent.setExternalReferences(null);
+        }
+
+        if (component.getComponentProperties() != null && component.getComponentProperties().size() > 0) {
+            List<org.cyclonedx.model.Property> props = new ArrayList<>();
+            for (ComponentProperty prop: component.getComponentProperties()) {
+                org.cyclonedx.model.Property cdxProp = new Property();
+                cdxProp.setName(prop.getName());
+                cdxProp.setValue(prop.getValue());
+                props.add(cdxProp);
+            }
+            cycloneComponent.setProperties(props);
+        } else {
+            cycloneComponent.setProperties(null);
         }
 
         /*
