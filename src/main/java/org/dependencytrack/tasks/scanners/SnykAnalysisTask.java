@@ -34,7 +34,7 @@ import io.github.resilience4j.micrometer.tagged.TaggedRetryMetrics;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
-import kong.unirest.GetRequest;
+import kong.unirest.HttpRequestWithBody;
 import kong.unirest.HttpResponse;
 import kong.unirest.HttpStatus;
 import kong.unirest.JsonNode;
@@ -85,15 +85,18 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Cache
     private static final Logger LOGGER = Logger.getLogger(SnykAnalysisTask.class);
     private static final Set<String> SUPPORTED_PURL_TYPES = Set.of(
             PackageURL.StandardTypes.CARGO,
-            "cocoapods", // Not defined in StandardTypes
+            "swift", // Not defined in StandardTypes
             PackageURL.StandardTypes.COMPOSER,
             PackageURL.StandardTypes.GEM,
-            PackageURL.StandardTypes.GENERIC,
             PackageURL.StandardTypes.HEX,
             PackageURL.StandardTypes.MAVEN,
             PackageURL.StandardTypes.NPM,
             PackageURL.StandardTypes.NUGET,
-            PackageURL.StandardTypes.PYPI
+            PackageURL.StandardTypes.PYPI,
+            PackageURL.StandardTypes.GOLANG,
+            "apk", // Not defined in StandardTypes
+            PackageURL.StandardTypes.DEBIAN,
+            PackageURL.StandardTypes.RPM
     );
     private static final Retry RETRY;
     private static final ExecutorService EXECUTOR;
@@ -292,13 +295,13 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Cache
     }
 
     private void analyzeComponent(final Component component) {
-        final String encodedPurl = URLEncoder.encode(component.getPurl().getCoordinates(), StandardCharsets.UTF_8);
+        final String encodedPurl = URLEncoder.encode(component.getPurl().toString(), StandardCharsets.UTF_8);
         final String requestUrl = "%s/rest/orgs/%s/packages/%s/issues?version=%s".formatted(apiBaseUrl, apiOrgId, encodedPurl, apiVersion);
-        final GetRequest request = UnirestFactory.getUnirestInstance().get(requestUrl)
+        final HttpRequestWithBody request = UnirestFactory.getUnirestInstance().post(requestUrl)
                 .header(HttpHeaders.AUTHORIZATION, "token " + apiTokenSupplier.get())
                 .header(HttpHeaders.ACCEPT, "application/vnd.api+json");
 
-        final HttpResponse<JsonNode> response = RETRY.executeSupplier(request::asJson);
+        final HttpResponse<JsonNode> response = RETRY.executeSupplier(request.body(component.getComponentProperties())::asJson);
         apiVersionSunset = StringUtils.trimToNull(response.getHeaders().getFirst("Sunset"));
         if (response.isSuccess()) {
             handle(component, response.getBody().getObject());
